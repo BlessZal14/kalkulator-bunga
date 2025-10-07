@@ -1,84 +1,44 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
+import numpy as np
 
 # =====================================================
-# === FUNGSI UTAMA ====================================
+# === JUDUL & DESAIN DASAR ============================
 # =====================================================
-
-def hitung_bunga_efektif():
-    try:
-        i_nom = float(entry_nominal.get()) / 100
-        m = int(combo_m.get().split()[0])
-        P = float(entry_modal.get())
-        tahun = int(entry_tahun.get())
-
-        # Rumus bunga efektif
-        i_eff = (1 + i_nom / m) ** m - 1
-        FV = P * (1 + i_eff) ** tahun
-        bunga_total = FV - P
-
-        hasil = (
-            f"💡 Tingkat Bunga Efektif: {i_eff * 100:.4f}% per tahun\n"
-            f"💰 Bunga Total ({tahun} tahun): Rp{bunga_total:,.2f}\n"
-            f"📈 Nilai Akhir (FV): Rp{FV:,.2f}"
-        )
-        label_hasil.config(text=hasil)
-
-        analisis = analisis_otomatis(i_eff, "efektif", tahun)
-        label_analisis.config(text=analisis)
-
-        tampilkan_grafik(P, i_eff, tahun, "efektif")
-
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan:\n{e}")
-
-def hitung_bunga_nominal():
-    try:
-        i_eff = float(entry_efektif.get()) / 100
-        m = int(combo_m.get().split()[0])
-        P = float(entry_modal.get())
-        tahun = int(entry_tahun.get())
-
-        # Rumus bunga nominal
-        i_nom = m * ((1 + i_eff) ** (1 / m) - 1)
-        FV = P * (1 + i_eff) ** tahun
-        bunga_total = FV - P
-
-        hasil = (
-            f"💡 Tingkat Bunga Nominal: {i_nom * 100:.4f}% per tahun\n"
-            f"💰 Bunga Total ({tahun} tahun): Rp{bunga_total:,.2f}\n"
-            f"📈 Nilai Akhir (FV): Rp{FV:,.2f}"
-        )
-        label_hasil.config(text=hasil)
-
-        analisis = analisis_otomatis(i_nom, "nominal", tahun)
-        label_analisis.config(text=analisis)
-
-        tampilkan_grafik(P, i_eff, tahun, "nominal")
-
-    except Exception as e:
-        messagebox.showerror("Error", f"Terjadi kesalahan:\n{e}")
+st.set_page_config(page_title="Kalkulator Bunga Efektif & Nominal 💰", layout="centered")
+st.title("💰 Kalkulator Bunga Efektif & Nominal")
+st.markdown("---")
 
 # =====================================================
-# === FUNGSI TAMBAHAN =================================
+# === INPUT PENGGUNA ==================================
 # =====================================================
+col1, col2 = st.columns(2)
+with col1:
+    P = st.number_input("Modal Awal (Rp)", min_value=0.0, value=1000000.0, step=100000.0)
+    tahun = st.number_input("Lama Investasi (tahun)", min_value=1, value=5, step=1)
+with col2:
+    i_nom = st.number_input("Bunga Nominal (%)", min_value=0.0, value=10.0, step=0.1)
+    i_eff = st.number_input("Bunga Efektif (%)", min_value=0.0, value=0.0, step=0.1)
+    m = st.selectbox("Frekuensi Kapitalisasi", ["1 - Tahunan", "2 - Semesteran", "4 - Triwulanan", "12 - Bulanan", "365 - Harian"])
 
-def tampilkan_grafik(P, i_eff, tahun_total, tipe):
-    tahun = list(range(1, tahun_total + 1))
-    FV_tahunan = [P * ((1 + i_eff) ** t) for t in tahun]
+m = int(m.split()[0])
 
-    plt.figure(figsize=(6, 4))
-    plt.plot(tahun, FV_tahunan, marker='o', linewidth=2, color='#0D47A1')
-    plt.title(f"📊 Pertumbuhan Modal ({tahun_total} Tahun) - Bunga {tipe.capitalize()}", fontsize=12)
-    plt.xlabel("Tahun ke-")
-    plt.ylabel("Nilai Modal (Rp)")
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.show()
+# =====================================================
+# === FUNGSI PERHITUNGAN ==============================
+# =====================================================
+def hitung_bunga_efektif(P, i_nom, m, tahun):
+    i_eff = (1 + i_nom / (100 * m)) ** m - 1
+    FV = P * (1 + i_eff) ** tahun
+    bunga_total = FV - P
+    return i_eff, FV, bunga_total
 
-def analisis_otomatis(i, tipe, tahun):
-    persen = i * 100
+def hitung_bunga_nominal(P, i_eff, m, tahun):
+    i_nom = m * ((1 + i_eff / 100) ** (1 / m) - 1)
+    FV = P * (1 + i_eff / 100) ** tahun
+    bunga_total = FV - P
+    return i_nom, FV, bunga_total
+
+def analisis_otomatis(persen, tipe, tahun):
     if persen < 5:
         kategori = "rendah"
     elif persen < 10:
@@ -94,120 +54,69 @@ def analisis_otomatis(i, tipe, tahun):
         durasi = "jangka panjang"
 
     if tipe == "efektif":
-        return (f"📊 Analisis: Tingkat bunga efektif sebesar {persen:.2f}% termasuk kategori {kategori}.\n"
-                f"Untuk investasi {durasi}, potensi keuntungan meningkat signifikan bila bunga efektif di atas 8%.")
+        return f"📊 Analisis: Bunga efektif {persen:.2f}% tergolong {kategori} untuk investasi {durasi}."
     else:
-        return (f"📊 Analisis: Bunga nominal {persen:.2f}% tergolong {kategori}. "
-                f"Untuk periode {durasi}, nilai efektif riil akan memengaruhi hasil aktual investasi.")
-
-def reset():
-    entry_modal.delete(0, tk.END)
-    entry_nominal.delete(0, tk.END)
-    entry_efektif.delete(0, tk.END)
-    entry_tahun.delete(0, tk.END)
-    entry_tahun.insert(0, "5")
-    combo_m.set("12 - Bulanan")
-    label_hasil.config(text="")
-    label_analisis.config(text="")
-
-def info():
-    messagebox.showinfo("Info", 
-        "💰 Kalkulator ini membantu menghitung hubungan antara bunga nominal dan bunga efektif.\n\n"
-        "Bunga Efektif → bunga sesungguhnya setelah kapitalisasi.\n"
-        "Bunga Nominal → suku bunga tahunan dari bank.\n"
-        "Hasil mencakup nilai akhir investasi dan grafik pertumbuhan modal berdasarkan lama investasi.")
-
-def simpan_hasil():
-    teks = label_hasil.cget("text") + "\n" + label_analisis.cget("text")
-    if teks.strip():
-        with open("hasil_kalkulator.txt", "a", encoding="utf-8") as f:
-            f.write(teks + "\n\n")
-        messagebox.showinfo("Berhasil", "✅ Hasil berhasil disimpan ke file 'hasil_kalkulator.txt'")
-    else:
-        messagebox.showwarning("Peringatan", "Tidak ada hasil untuk disimpan.")
-
-def tutup_aplikasi():
-    root.destroy()
+        return f"📊 Analisis: Bunga nominal {persen:.2f}% tergolong {kategori} untuk investasi {durasi}."
 
 # =====================================================
-# === GUI DESAIN ======================================
+# === TOMBOL & HASIL ==================================
 # =====================================================
-root = tk.Tk()
-root.title("Kalkulator Bunga Efektif dan Nominal")
-root.geometry("820x680")
-root.configure(bg="#E3F2FD")
+colA, colB = st.columns(2)
 
-judul_font = ("Helvetica", 20, "bold")
-label_font = ("Helvetica", 12)
-entry_font = ("Helvetica", 12)
+with colA:
+    if st.button("📈 Hitung Efektif"):
+        i_eff, FV, bunga_total = hitung_bunga_efektif(P, i_nom, m, tahun)
+        st.success(f"💡 Bunga Efektif: {i_eff * 100:.4f}%")
+        st.info(f"💰 Bunga Total: Rp{bunga_total:,.2f}")
+        st.info(f"📊 Nilai Akhir (FV): Rp{FV:,.2f}")
+        st.markdown(analisis_otomatis(i_eff * 100, "efektif", tahun))
 
-tk.Label(root, text="💰 Kalkulator Bunga Efektif & Nominal", font=judul_font, fg="#0D47A1", bg="#E3F2FD").pack(pady=20)
+        # === Grafik ===
+        tahun_list = np.arange(1, tahun + 1)
+        nilai = P * (1 + i_eff) ** tahun_list
+        plt.figure(figsize=(6, 4))
+        plt.plot(tahun_list, nilai, marker='o', color="#1565C0")
+        plt.title("Grafik Pertumbuhan Modal (Efektif)")
+        plt.xlabel("Tahun ke-")
+        plt.ylabel("Nilai Modal (Rp)")
+        plt.grid(True, linestyle='--', alpha=0.6)
+        st.pyplot(plt)
 
-frame = tk.Frame(root, bg="#E3F2FD")
-frame.pack(pady=5)
+with colB:
+    if st.button("💹 Hitung Nominal"):
+        i_nom, FV, bunga_total = hitung_bunga_nominal(P, i_eff, m, tahun)
+        st.success(f"💡 Bunga Nominal: {i_nom * 100:.4f}%")
+        st.info(f"💰 Bunga Total: Rp{bunga_total:,.2f}")
+        st.info(f"📊 Nilai Akhir (FV): Rp{FV:,.2f}")
+        st.markdown(analisis_otomatis(i_nom * 100, "nominal", tahun))
 
-# === Input Fields ===
-tk.Label(frame, text="Modal Awal (P)", font=label_font, bg="#E3F2FD").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-entry_modal = tk.Entry(frame, font=entry_font, width=20)
-entry_modal.grid(row=0, column=1)
+        tahun_list = np.arange(1, tahun + 1)
+        nilai = P * (1 + i_eff / 100) ** tahun_list
+        plt.figure(figsize=(6, 4))
+        plt.plot(tahun_list, nilai, marker='o', color="#2E7D32")
+        plt.title("Grafik Pertumbuhan Modal (Nominal)")
+        plt.xlabel("Tahun ke-")
+        plt.ylabel("Nilai Modal (Rp)")
+        plt.grid(True, linestyle='--', alpha=0.6)
+        st.pyplot(plt)
 
-tk.Label(frame, text="Bunga Nominal (%)", font=label_font, bg="#E3F2FD").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-entry_nominal = tk.Entry(frame, font=entry_font, width=20)
-entry_nominal.grid(row=1, column=1)
+# =====================================================
+# === FITUR TAMBAHAN ==================================
+# =====================================================
+st.markdown("---")
+if st.button("📝 Simpan Hasil"):
+    with open("hasil_kalkulator.txt", "a", encoding="utf-8") as f:
+        f.write(f"Modal={P}, Bunga Nominal={i_nom}%, Efektif={i_eff}%, Tahun={tahun}\n")
+    st.success("✅ Hasil disimpan ke file 'hasil_kalkulator.txt'.")
 
-tk.Label(frame, text="Bunga Efektif (%)", font=label_font, bg="#E3F2FD").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-entry_efektif = tk.Entry(frame, font=entry_font, width=20)
-entry_efektif.grid(row=2, column=1)
+if st.button("🚪 Tutup Aplikasi"):
+    st.warning("Aplikasi ditutup (di versi web, hanya menutup sesi pengguna).")
 
-tk.Label(frame, text="Frekuensi Kapitalisasi", font=label_font, bg="#E3F2FD").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-combo_m = ttk.Combobox(frame,
-                       values=["1 - Tahunan", "2 - Semesteran", "4 - Triwulanan", "12 - Bulanan", "365 - Harian"],
-                       width=18, font=entry_font)
-combo_m.set("12 - Bulanan")
-combo_m.grid(row=3, column=1)
+# =====================================================
+# === FOOTER ==========================================
+# =====================================================
+st.markdown("---")
+st.markdown("<h4 style='text-align:center;color:#555;'>Kelompok Bunga 🌸 | Proyek Matematika Keuangan</h4>", unsafe_allow_html=True)
 
-tk.Label(frame, text="Lama Investasi (tahun)", font=label_font, bg="#E3F2FD").grid(row=4, column=0, padx=10, pady=5, sticky="e")
-entry_tahun = tk.Entry(frame, font=entry_font, width=20)
-entry_tahun.grid(row=4, column=1)
-entry_tahun.insert(0, "5")
 
-# === Tombol ===
-btn_frame = tk.Frame(root, bg="#E3F2FD")
-btn_frame.pack(pady=10)
-
-tk.Button(btn_frame, text="Hitung Efektif", font=("Helvetica", 11, "bold"),
-          bg="#4CAF50", fg="white", width=14, command=hitung_bunga_efektif).grid(row=0, column=0, padx=10)
-
-tk.Button(btn_frame, text="Hitung Nominal", font=("Helvetica", 11, "bold"),
-          bg="#2196F3", fg="white", width=14, command=hitung_bunga_nominal).grid(row=0, column=1, padx=10)
-
-tk.Button(root, text="Reset", font=("Helvetica", 11, "bold"),
-          bg="#f44336", fg="white", width=12, command=reset).pack(pady=5)
-
-tk.Button(root, text="ℹ Info", font=("Helvetica", 11, "bold"),
-          bg="#FFC107", fg="black", width=12, command=info).pack(pady=3)
-
-tk.Button(root, text="Simpan Hasil", font=("Helvetica", 11, "bold"),
-          bg="#795548", fg="white", width=14, command=simpan_hasil).pack(pady=5)
-
-tk.Button(root, text="🚪 Tutup Aplikasi", font=("Helvetica", 11, "bold"),
-          bg="#9E9E9E", fg="white", width=15, command=tutup_aplikasi).pack(pady=8)
-
-# === Label Hasil ===
-frame_hasil = tk.Frame(root, bg="#BBDEFB", bd=2, relief="groove")
-frame_hasil.pack(pady=15, padx=20, fill="x")
-label_hasil = tk.Label(frame_hasil, text="", font=("Helvetica", 12, "bold"),
-                       fg="#0D47A1", bg="#BBDEFB", wraplength=760, justify="center")
-label_hasil.pack(pady=10)
-
-# === Analisis Otomatis ===
-label_analisis = tk.Label(root, text="", font=("Helvetica", 11, "italic"),
-                          fg="#0D47A1", bg="#E3F2FD", wraplength=760, justify="center")
-label_analisis.pack(pady=5)
-
-# === Footer ===
-tk.Label(root, text="Kelompok Bunga 🌸 | Aplikasi Proyek Matematika Keuangan", 
-         font=("Helvetica", 11, "italic"), bg="#E3F2FD", fg="#555").pack(side="bottom", pady=10)
-
-root.mainloop()
 
