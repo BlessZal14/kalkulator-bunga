@@ -1,5 +1,5 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import streamlit as st
+import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 
 # =====================================================
@@ -210,3 +210,4 @@ tk.Label(root, text="Kelompok Bunga 🌸 | Aplikasi Proyek Matematika Keuangan",
          font=("Helvetica", 11, "italic"), bg="#E3F2FD", fg="#555").pack(side="bottom", pady=10)
 
 root.mainloop()
+
